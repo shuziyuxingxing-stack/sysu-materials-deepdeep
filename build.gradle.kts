@@ -18,7 +18,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.4.21"
 }
 
-val pluginApiVersion = "0.8.1"
+val pluginApiVersion = "1.0.0"
 
 android {
     namespace = "ink.sysu.materials"
@@ -28,8 +28,8 @@ android {
         applicationId = "ink.sysu.materials"
         minSdk = 29
         targetSdk = 36
-        versionCode = 102
-        versionName = "1.0.2"
+        versionCode = 110
+        versionName = "1.1.0"
     }
 
     compileOptions {

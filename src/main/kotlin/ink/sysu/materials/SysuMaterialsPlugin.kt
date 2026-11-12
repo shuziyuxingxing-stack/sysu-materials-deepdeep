@@ -47,8 +47,8 @@ class SysuMaterialsPlugin:DeepDeepPlugin {
         val key=resultKey(args);val json=result.json();resultCache[key]=json
         withContext(Dispatchers.IO){val dir=File(host.dataDir,"results");dir.mkdirs();File(dir,"$key.json").writeText(json.toString())}
     }
-    override suspend fun availability(host:PluginHost)=PluginAvailability.Available
-    override fun contributions(host:PluginHost)=Contributions(tools=listOf(PluginTool(
+    override suspend fun availability(host:PluginHost)=available()
+    override fun contributions(host:PluginHost)=contributions(tools=listOf(pluginTool(
         name=TOOL,label="检索中大资料",
         description="搜索中山大学学习与新生资料，来源限定 SYSU_freshman_materials 与 arxiv.jaison.ink。返回真实来源链接和可下载资料卡片。适用于课程真题、笔记、复习、四六级、军理、选课等。",
         parameters=Json.parseToJsonElement("""{"type":"object","properties":{"query":{"type":"string","description":"简短课程或主题关键词，例如 线性代数、高等数学、军事理论、选课；不要放整句问话"},"kind":{"type":"string","enum":["all","past_exam","study_material"],"description":"真题选 past_exam，笔记/复习资料选 study_material"},"source":{"type":"string","enum":["all","github","community"]},"year":{"type":"integer","description":"仅用户明确指定时传入年份"},"limit":{"type":"integer","minimum":1,"maximum":10}},"required":["query"],"additionalProperties":false}""").jsonObject,
@@ -56,23 +56,23 @@ class SysuMaterialsPlugin:DeepDeepPlugin {
         promptGuidelines=listOf("先调用工具再回答，不编造 URL、资料年份或是否含答案。","query 提取课程/主题；资料类型与年份分别传入 kind/year。","工具卡片已提供查看来源和下载按钮。社区登录限制与来源失败需如实说明。"),
         execute={call->
             val q=call.args.s("query").trim().take(100)
-            if(q.isBlank()) PluginToolResult.text("请输入课程或主题关键词。",isError=true)
+            if(q.isBlank()) textResult("请输入课程或主题关键词。",isError=true)
             else try {
                 call.signal?.throwIfCancelled()
                 val r=search(host,q,call.args.s("kind"),call.args.s("source"),call.args.n("year").toInt(),call.args.n("limit").toInt().let{if(it==0)8 else it.coerceIn(1,10)})
                 saveResult(host,call.args,r)
                 call.signal?.throwIfCancelled()
-                PluginToolResult.text(buildString {
+                textResult(buildString {
                     append("找到 ${r.items.size} 条匹配资料。\n")
                     r.items.forEachIndexed{i,x->append("${i+1}. ${x.title} [${x.source}] ${x.info}\n来源：${x.url}\n")}
                     r.notices.forEach{append("提示：$it\n")}
                     append("请使用资料卡片的查看原页、下载或登录后下载按钮；下载操作由用户点击发起。")
                 },r.json())
-            } catch(e:CancellationException){throw e} catch(e:Exception){PluginToolResult.text("检索失败：${e.message}",isError=true)}
+            } catch(e:CancellationException){throw e} catch(e:Exception){textResult("检索失败：${e.message}",isError=true)}
         }
     )))
     override fun ui(host:PluginHost)=object:PluginUiContributions {
-        override val bindings=listOf(SlotBinding(SlotIds.toolCard(TOOL),content=SlotContent.Compose { state->
+        override val bindings=listOf(slotBinding(SlotIds.toolCard(TOOL),content=composeSlot { state->
             val card=state as? ToolCardSlotState
             val r=card?.result
             val key=card?.args?.let(::resultKey)
@@ -81,15 +81,15 @@ class SysuMaterialsPlugin:DeepDeepPlugin {
             var failure by remember{mutableStateOf<String?>(null)}
             val scope=rememberCoroutineScope()
             LaunchedEffect(key){if(key!=null)restored=withContext(Dispatchers.IO){runCatching{Json.parseToJsonElement(File(host.dataDir,"results/$key.json").readText()).jsonObject}.getOrNull()}}
-            val details=when(r){is PluginToolResult.Text->r.details;is PluginToolResult.Rich->r.details;else->null} ?: key?.let{resultCache[it]} ?: restored
+            val details=r?.details ?: key?.let{resultCache[it]} ?: restored
             if(details!=null) Results(host,SearchResult((details["items"] as? JsonArray).orEmpty().mapNotNull{(it as? JsonObject)?.let(Item::from)},(details["notices"] as? JsonArray).orEmpty().map{it.jsonPrimitive.content}))
             else Column {
-                Text(failure ?: if(r?.isError==true) (r as? PluginToolResult.Text)?.text ?: "检索失败" else "展开资料与下载操作")
+                Text(failure ?: if(r?.isError==true) r?.text ?: "检索失败" else "展开资料与下载操作")
                 if(card!=null) Button(enabled=!refreshing,onClick={scope.launch{refreshing=true;try{val a=card.args;val found=search(host,a.s("query"),a.s("kind"),a.s("source"),a.n("year").toInt(),a.n("limit").toInt().let{if(it==0)8 else it.coerceIn(1,10)});saveResult(host,a,found);restored=found.json()}catch(e:CancellationException){throw e}catch(e:Exception){failure=e.message}finally{refreshing=false}}}){Text(if(refreshing)"正在加载…" else "加载资料卡片")}
                 else TextButton(onClick={host.ui().openPage("sysu.materials")}){Text("打开中大资料")}
             }
         }))
-        override val pages=listOf(PluginPage("sysu.materials",LocalizedText.Literal("中大资料"),content={Browser(host)}))
+        override val pages=listOf(pluginPage("sysu.materials",localizedText("中大资料"),content={Browser(host)}))
     }
     private suspend fun get(host:PluginHost,url:String):JsonObject {
         val r=host.network().request("GET",url,mapOf("Accept" to "application/json","User-Agent" to "SYSU-Materials-DeepDeep/1.0"),timeoutMs=25_000)
@@ -191,7 +191,7 @@ class SysuMaterialsPlugin:DeepDeepPlugin {
                             Button(enabled=!active,onClick={if(item.download.isBlank())host.ui().openUrl(item.url) else download(host,item)}){Text(if(item.download.isBlank())"登录后下载" else if(active)"下载中…" else if(saved.containsKey(item.id))"重新下载" else "下载")}
                         }
                         downloadStates[item.id]?.let{Text(it,style=MaterialTheme.typography.bodySmall)}
-                        saved[item.id]?.let{path->TextButton(onClick={host.ui().share(ShareRequest(filePath=path))}){Text("打开 / 分享已下载文件")}}
+                        saved[item.id]?.let{path->TextButton(onClick={host.ui().share(shareRequest(filePath=path))}){Text("打开 / 分享已下载文件")}}
                     }
                 }
             }}
