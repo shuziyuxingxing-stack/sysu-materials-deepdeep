@@ -1,0 +1,47 @@
+{
+  "id": "ink.sysu.materials",
+  "version": "1.0.2",
+  "apiLevel": 5,
+  "minHostVersion": "1.0.1",
+  "capabilities": [
+    "network",
+    "ui"
+  ],
+  "entryClass": "ink.sysu.materials.SysuMaterialsPlugin",
+  "name": {
+    "default": "中大资料检索",
+    "zh": "中大资料检索",
+    "en": "SYSU Materials Search"
+  },
+  "summary": {
+    "default": "在聊天中查中大课程、新生资料和真题",
+    "zh": "在聊天中查中大课程、新生资料和真题",
+    "en": "Find SYSU course materials, freshman guides, and past exams"
+  },
+  "description": {
+    "default": "用自然语言搜索 SYSU freshman materials 和中大资料社区。结果附原页链接，GitHub 文件可直接下载，社区文件在原站登录后下载。",
+    "zh": "用自然语言搜索 SYSU freshman materials 和中大资料社区。结果附原页链接，GitHub 文件可直接下载，社区文件在原站登录后下载。",
+    "en": "Search the SYSU freshman materials repository and the SYSU materials community from chat. Open source pages, download GitHub files, or sign in on the community site to download."
+  },
+  "icon": "asset:icon.png",
+  "ui": {
+    "apiLevel": 1,
+    "kotlin": "2.4",
+    "compose": "1.10.5"
+  },
+  "publisher": {
+    "name": "本地定制 · 中大资料"
+  },
+  "provides": {
+    "tools": [
+      "sysu_materials_search"
+    ],
+    "uiSlots": [
+      "tool.card.content:sysu_materials_search"
+    ],
+    "pages": [
+      "sysu.materials"
+    ]
+  },
+  "defaultEnabled": true
+}
