@@ -1,8 +1,8 @@
 {
   "id": "ink.sysu.materials",
-  "version": "1.0.2",
-  "apiLevel": 5,
-  "minHostVersion": "1.0.1",
+  "version": "1.1.0",
+  "apiLevel": 6,
+  "minHostVersion": "1.0.4",
   "capabilities": [
     "network",
     "ui"
@@ -25,9 +25,7 @@
   },
   "icon": "asset:icon.png",
   "ui": {
-    "apiLevel": 1,
-    "kotlin": "2.4",
-    "compose": "1.10.5"
+    "apiLevel": 2
   },
   "publisher": {
     "name": "本地定制 · 中大资料"
